@@ -1,25 +1,34 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import Login from "./auth/Login";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Home from "./dashboard/Home";
+import Chat from "./room/Chat";
+import "react-toastify/dist/ReactToastify.css";
+import { ToastContainer } from "react-toastify";
 
-function App() {
+const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <>
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+      <Router>
+        <Routes>
+          <Route exact path="/home" element={<Home />} />
+          <Route exact path="/chat" element={<Chat />} />
+          <Route exact path="/" element={<Login />} />
+        </Routes>
+      </Router>
+    </>
   );
-}
+};
 
 export default App;

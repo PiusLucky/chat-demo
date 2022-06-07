@@ -1,29 +1,78 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import "../App.css";
 import { connect } from "react-redux";
-import { setOnlineUsers, setUsersTyping } from "../store/actions";
+import {
+  setNotificationMessages,
+  setOnlineUsers,
+  setUsersTyping,
+} from "../store/actions";
 import { socketConn } from "../utils/socketConfig";
 import SocketEvents from "../enums/SocketEvents";
 import { users } from "../utils/testUsers";
 import { useNavigate } from "react-router-dom";
 import { getLoggedUser } from "../utils/saveUser";
 
-const dashboardUI = (user, index, onlineUsers, userTyping, handleChatUser) => {
+const notificationBadge = (count) => {
+  if (count !== 0) {
+    return (
+      <span
+        style={{
+          position: "relative",
+          // top: "-10px",
+          // right: "-10px",
+          padding: "5px 10px",
+          borderRadius: "50%",
+          background: "green",
+          color: "white",
+        }}
+      >
+        {count}
+      </span>
+    );
+  } else {
+    return <div></div>;
+  }
+};
+
+const dashboardUI = (
+  user,
+  index,
+  onlineUsers,
+  userTyping,
+  handleChatUser,
+  notificationMessage
+) => {
   const id = user.email;
   const name = user.name;
   const isOnline = onlineUsers.includes(id);
   const isTyping = userTyping.includes(id);
+  const notifications = notificationMessage[id];
+  const isNotified = notifications !== undefined;
+  let count = 0;
+  let lastMessage = "";
+  if (isNotified) {
+    count = notifications.length;
+    lastMessage = notifications[notifications.length - 1];
+  }
 
   return (
     <tr key={index}>
       <td>
-        {`${name}, (${user.userType})`} {isTyping && ", isTyping..."}
+        <div>
+          {`${name}, (${user.userType})`}{" "}
+          <small>{isTyping && ", typing..."}</small>
+        </div>
+        <small>{isNotified && lastMessage}</small>
       </td>
       <td>{id}</td>
       {isOnline ? (
-        <td style={{ color: "blue", fontWeight: "26px" }}>Online</td>
+        <td style={{ color: "blue", fontWeight: "26px" }}>
+          Online <span>{isNotified && notificationBadge(count)}</span>
+        </td>
       ) : (
-        <td>Offline</td>
+        <td>
+          Offline <span>{isNotified && notificationBadge(count)}</span>
+        </td>
       )}
       <td>
         <button
@@ -44,6 +93,8 @@ const Home = ({
   userTyping,
   setOnlineUsersAction,
   setUserTypingAction,
+  notificationMessage,
+  setNotificationAction,
 }) => {
   const navigate = useNavigate();
   let currentUser = getLoggedUser();
@@ -93,6 +144,49 @@ const Home = ({
     };
   }, [userTyping]);
 
+  useEffect(() => {
+    console.log("notification", notificationMessage);
+    socket.on(SocketEvents.NOTIFY_USER, (data) => {
+      if (notificationMessage[data.sender] === undefined) {
+        let newNotification = {};
+        newNotification[data.sender] = [data.message];
+        console.log("new notification", newNotification);
+        setNotificationAction(newNotification);
+      } else {
+        let oldNotification = notificationMessage[data.sender];
+        let updatedNotification = oldNotification.concat([data.message]);
+        notificationMessage[data.sender] = updatedNotification;
+        console.log("up notification", notificationMessage);
+        setNotificationAction(notificationMessage);
+      }
+
+      console.log("notification after", notificationMessage);
+    });
+  }, [notificationMessage]);
+
+  useEffect(() => {
+    fetch(
+      `${process.env.REACT_APP_BETACARE_URL}/api/message/test/offline-messages/count?loggedUserId=${currentUser.email}`
+    )
+      .then(async (response) => {
+        const data = await response.json();
+        console.log("data", data);
+
+        let senders = Object.keys(data);
+        console.log("senders", senders);
+        console.log(data[senders[0]]);
+
+        for (let i = 0; i < senders.length; i++) {
+          let newNotification = {};
+          newNotification[senders[i]] = [data[senders[i]]];
+          setNotificationAction(newNotification);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, []);
+
   const handleChatUser = (e) => {
     let id = e.target.id;
     let name = e.target.name;
@@ -117,7 +211,14 @@ const Home = ({
           </thead>
           <tbody>
             {participants.map((user, index) =>
-              dashboardUI(user, index, onlineUsers, userTyping, handleChatUser)
+              dashboardUI(
+                user,
+                index,
+                onlineUsers,
+                userTyping,
+                handleChatUser,
+                notificationMessage
+              )
             )}
           </tbody>
         </table>
@@ -136,6 +237,8 @@ const mapActionsToProps = (dispatch) => {
   return {
     setOnlineUsersAction: (users) => dispatch(setOnlineUsers(users)),
     setUserTypingAction: (userTyping) => dispatch(setUsersTyping(userTyping)),
+    setNotificationAction: (notificationMessage) =>
+      dispatch(setNotificationMessages(notificationMessage)),
   };
 };
 

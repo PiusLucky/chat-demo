@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { connect } from "react-redux";
-import { setOnlineUsers } from "../store/actions";
+import { setNotificationMessages, setOnlineUsers } from "../store/actions";
 import { socketConn } from "../utils/socketConfig";
 import SocketEvents from "../enums/SocketEvents";
 import { users } from "../utils/testUsers";
@@ -17,16 +17,8 @@ const chatBox = {
   textAlign: "center",
 };
 
-const rightMessage = {
-  clear: "left",
-  float: "right",
-  padding: "5px 10px 5px 10px",
-  backgroundColor: "#fff",
-  borderRadius: "4px 10px 0px 10px",
-};
-
 const Chat = (props) => {
-  const { onlineUsers, setOnlineUsersAction } = props;
+  const { onlineUsers, setNotificationAction, notificationMessage } = props;
   const currentUser = JSON.parse(localStorage.getItem("user"));
   const location = useLocation();
   const state = location.state;
@@ -37,9 +29,53 @@ const Chat = (props) => {
   const name = state.name;
   // check if user is online
   const onlineStatus = onlineUsers.includes(id);
-  // onlineUsers.includes(status);
 
   useEffect(() => {
+    let notifications = notificationMessage;
+    if (notifications !== undefined) {
+      //clear notification messages from state
+      let newNotification = {};
+      newNotification[id] = [];
+      setNotificationAction(newNotification);
+
+      // and from database
+      fetch(
+        `${process.env.REACT_APP_BETACARE_URL}/api/message/test/offline-messages/cleanup?loggedUserId=${currentUser.email}&userId=${id}`,
+        {
+          method: "PATCH",
+        }
+      )
+        .then(async (response) => {
+          console.log(await response.json());
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+
+    fetch(
+      `${process.env.REACT_APP_BETACARE_URL}/api/message/test/retrieve?loggedUserId=${currentUser.email}&userId=${id}&size=40`
+    )
+      .then(async (response) => {
+        const data = await response.json();
+        const usertype = currentUser.userType.toUpperCase();
+        let messages = data.content;
+
+        for (let i = 0; i < messages.length; i++) {
+          const { message, sender } = messages[i];
+          const isSender = sender === usertype;
+          let div = messagesContainer.current;
+          const p = document.createElement("p");
+          p.textContent = message;
+          if (isSender) addStyleToSentMessages(p);
+          else addStyleToReceivedMessages(p);
+          div.appendChild(p);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+
     const data = {
       owner: id,
       guest: currentUser.email,
@@ -47,11 +83,26 @@ const Chat = (props) => {
     socket.emit(SocketEvents.JOINROOM, data);
 
     return () => {
-      console.log(messagesContainer);
       if (messagesContainer.current === null) {
         console.log("leaving");
         socket.emit(SocketEvents.LEAVEROOM, data);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    socket.on(SocketEvents.SEND_MESSAGE, (data) => {
+      console.log("received", data);
+      let div = messagesContainer.current;
+      console.log("messagesContainer", div);
+      const p = document.createElement("p");
+      p.textContent = data.message;
+      addStyleToReceivedMessages(p);
+      div.appendChild(p);
+    });
+
+    return () => {
+      socket.off(SocketEvents.SEND_MESSAGE, (data) => console.log(data));
     };
   }, []);
 
@@ -80,6 +131,7 @@ const Chat = (props) => {
   const handleSendMessage = (e) => {
     const id = e.target.id;
     const message = textContainer.current.value;
+    textContainer.current.value = "";
     let userType = users.find((user) => user.email === id).userType;
     if (currentUser.userType === userType) {
       toast("Doctor-Doctor or Patient-Patient Communication not allowed");
@@ -95,43 +147,35 @@ const Chat = (props) => {
     let div = messagesContainer.current;
     console.log("messagesContainer", div);
     const p = document.createElement("p");
-
-    const textnode = document.createTextNode(message);
-    p.appendChild(textnode);
+    p.textContent = message;
     addStyleToSentMessages(p);
-
     div.appendChild(p);
 
     socket.emit(SocketEvents.SEND_MESSAGE, data);
   };
 
-  const handleReceivedMessage = (message, sender) => {
-    if (name === sender) {
-    }
-  };
-
-  const userLeaveRoom = () => {};
-
   const addStyleToSentMessages = (p) => {
     const layout = p.style;
-    layout.clear = "left";
+    layout.clear = "both";
     layout.float = "right";
     layout.padding = "5px 10px 5px 10px";
     layout.backgroundColor = "#fff";
+    layout.marginBottom = "-2px";
     layout.borderRadius = "4px 10px 0px 10px";
   };
 
   const addStyleToReceivedMessages = (p) => {
     const layout = p.style;
-    layout.clear = "right";
+    layout.clear = "both";
     layout.float = "left";
     layout.padding = "5px 10px 5px 10px";
     layout.backgroundColor = "#fff";
+    layout.marginBottom = "-2px";
     layout.borderRadius = "0px 10px 4px 10px";
   };
 
   return (
-    <div style={{ width: "80%", margin: "auto" }}>
+    <div style={{ width: "75%", margin: "auto" }}>
       <p>
         {name}, {onlineStatus ? "Online" : "Offline"}
       </p>
@@ -141,7 +185,7 @@ const Chat = (props) => {
           border: "2px solid black",
           backgroundColor: "#d5e1df",
           display: "block",
-          height: "450px",
+          height: "390px",
           overflowY: "scroll",
           padding: "20px",
         }}
@@ -175,6 +219,8 @@ const mapStoreStateToProps = (state) => {
 const mapActionsToProps = (dispatch) => {
   return {
     setOnlineUsersAction: (users) => dispatch(setOnlineUsers(users)),
+    setNotificationAction: (notificationMessage) =>
+      dispatch(setNotificationMessages(notificationMessage)),
   };
 };
 

@@ -13,6 +13,7 @@ const SocketEvents = {
   DISCONNECTED: "DISCONNECTED",
   JOINROOM: "JOINROOM",
   LEAVEROOM: "LEAVEROOM",
+  NOTIFY_USER: "NOTIFY_USER",
 };
 
 Object.freeze(SocketEvents);

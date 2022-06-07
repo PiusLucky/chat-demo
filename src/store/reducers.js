@@ -3,6 +3,7 @@ import Actions from "./actions";
 const initState = {
   onlineUsers: [],
   userTyping: [],
+  notificationMessage: {},
 };
 
 const reducer = (state = initState, action) => {
@@ -16,6 +17,12 @@ const reducer = (state = initState, action) => {
       return {
         ...state,
         userTyping: action.userTyping,
+      };
+    case Actions.SET_NOTIFICATION:
+      console.log(state.notificationMessage, "here");
+      return {
+        ...state,
+        notificationMessage: action.notificationMessage,
       };
     default:
       return state;

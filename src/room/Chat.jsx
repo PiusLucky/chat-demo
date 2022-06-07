@@ -84,7 +84,6 @@ const Chat = (props) => {
 
     return () => {
       if (messagesContainer.current === null) {
-        console.log("leaving");
         socket.emit(SocketEvents.LEAVEROOM, data);
       }
     };
@@ -92,9 +91,7 @@ const Chat = (props) => {
 
   useEffect(() => {
     socket.on(SocketEvents.SEND_MESSAGE, (data) => {
-      console.log("received", data);
       let div = messagesContainer.current;
-      console.log("messagesContainer", div);
       const p = document.createElement("p");
       p.textContent = data.message;
       addStyleToReceivedMessages(p);
@@ -145,7 +142,6 @@ const Chat = (props) => {
     };
 
     let div = messagesContainer.current;
-    console.log("messagesContainer", div);
     const p = document.createElement("p");
     p.textContent = message;
     addStyleToSentMessages(p);
@@ -160,7 +156,7 @@ const Chat = (props) => {
     layout.float = "right";
     layout.padding = "5px 10px 5px 10px";
     layout.backgroundColor = "#fff";
-    layout.marginBottom = "-2px";
+    layout.marginBottom = "-1px";
     layout.borderRadius = "4px 10px 0px 10px";
   };
 
@@ -170,7 +166,7 @@ const Chat = (props) => {
     layout.float = "left";
     layout.padding = "5px 10px 5px 10px";
     layout.backgroundColor = "#fff";
-    layout.marginBottom = "-2px";
+    layout.marginBottom = "-1px";
     layout.borderRadius = "0px 10px 4px 10px";
   };
 

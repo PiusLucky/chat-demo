@@ -18,8 +18,6 @@ const notificationBadge = (count) => {
       <span
         style={{
           position: "relative",
-          // top: "-10px",
-          // right: "-10px",
           padding: "5px 10px",
           borderRadius: "50%",
           background: "green",
@@ -120,7 +118,6 @@ const Home = ({
   useEffect(() => {
     socket.on(SocketEvents.NOTIFY_TYPING, (data) => {
       const { status, sender } = data;
-      console.log("just me", sender);
       if (status) {
         const arr = [];
         for (let i = 0; i < userTyping.length; i++) {
@@ -145,22 +142,17 @@ const Home = ({
   }, [userTyping]);
 
   useEffect(() => {
-    console.log("notification", notificationMessage);
     socket.on(SocketEvents.NOTIFY_USER, (data) => {
       if (notificationMessage[data.sender] === undefined) {
         let newNotification = {};
         newNotification[data.sender] = [data.message];
-        console.log("new notification", newNotification);
         setNotificationAction(newNotification);
       } else {
         let oldNotification = notificationMessage[data.sender];
         let updatedNotification = oldNotification.concat([data.message]);
         notificationMessage[data.sender] = updatedNotification;
-        console.log("up notification", notificationMessage);
         setNotificationAction(notificationMessage);
       }
-
-      console.log("notification after", notificationMessage);
     });
   }, [notificationMessage]);
 
@@ -170,11 +162,7 @@ const Home = ({
     )
       .then(async (response) => {
         const data = await response.json();
-        console.log("data", data);
-
         let senders = Object.keys(data);
-        console.log("senders", senders);
-        console.log(data[senders[0]]);
 
         for (let i = 0; i < senders.length; i++) {
           let newNotification = {};

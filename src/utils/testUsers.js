@@ -1,32 +1,22 @@
 export const users = [
   {
-    name: "Adenusi Damilola",
-    email: "doctor1234@gmail.com",
-    userType: "Doctor",
+    name: "Lizzy Gabriel",
+    email: "lizzygabriel000@gmail.com",
+    userType: "Patient",
   },
   {
     name: "Olaleye Stephen",
     email: "stvolutosin69@gmail.com",
-    userType: "Patient",
-  },
-  {
-    name: "Lizzy Echindo",
-    email: "doctor123@gmail.com",
     userType: "Doctor",
   },
   {
-    name: "John Smith",
-    email: "stv@gmail.com",
+    name: "Ope Ola",
+    email: "opeola@mail.com",
+    userType: "Doctor",
+  },
+  {
+    name: "Steve Nice",
+    email: "nicesteve2k4@yahoo.com",
     userType: "Patient",
   },
-  //   {
-  //     name: "Emmanuel James",
-  //     email: "emmaj@gmail.com",
-  //     userType: "Patient",
-  //   },
-  //   {
-  //     name: "Esther Cliton",
-  //     email: "estcli@gmail.com",
-  //     userType: "Patient",
-  //   },
 ];

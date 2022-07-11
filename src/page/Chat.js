@@ -1,5 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { cleanUpNotifications, getMessages } from "../api/message";
+import { joinRoomEmitter } from "../sockets/emitters/joinRoomEmitter";
+import { incomingMessageListener } from "../sockets/listeners/incomingMessageListener";
+import { sendMessageEmitter } from "../sockets/emitters/sendMessageEmitter";
+import { userTypingEmitter } from "../sockets/emitters/userTypingEmitter";
+import { userNotTypingEmitter } from "../sockets/emitters/userNotTypingEmitter";
+import { leaveRoomEmitter } from "../sockets/emitters/leaveRoomEmitter";
 
 const chatBox = {
   position: "relative",
@@ -20,95 +26,61 @@ export default function Chat({
   id,
   name,
   currentUser,
+  setPage,
 }) {
   const textContainer = useRef();
   const messagesContainer = useRef(null);
   const onlineStatus = onlineUsers.includes(id);
 
   const handleSendMessage = (e) => {
-    const id = e.target.id.toString();
-    const message = textContainer.current.value;
-    textContainer.current.value = "";
-    let userType = currentUser.userType;
-    const data = {
-      sender: { id: currentUser.id.toString(), userType },
-      receiver: { id, userType: userType === "PATIENT" ? "DOCTOR" : "PATIENT" },
-      message,
-      token: currentUser.token,
-    };
-    let div = messagesContainer.current;
-    const p = document.createElement("p");
-    p.textContent = message;
-    addStyleToSentMessages(p);
-    div.appendChild(p);
-    console.log(data, "dataaaaaaaaaaa");
-    socket.emit(SocketEvents.SEND_MESSAGE, data);
+    // display message and send it to the receiver
+    sendMessageEmitter(
+      e,
+      textContainer,
+      socket,
+      SocketEvents,
+      messagesContainer,
+      currentUser,
+      addStyleToSentMessages
+    );
   };
 
   useEffect(() => {
-    let notifications = notificationMessage;
-    if (notifications !== undefined) {
-      //clean notification messages from redux state
-      let newNotification = {};
-      newNotification[id] = [];
-      setNotificationAction(newNotification);
+    // clean up notifications
+    cleanUpChatNotifications(
+      id,
+      currentUser,
+      notificationMessage,
+      setNotificationAction
+    );
 
-      // clean notification messages from database
-      async function cleanNotificationData() {
-        const result = await cleanUpNotifications(id, currentUser.token);
-        if (!result.hasOwnProperty("message")) {
-          console.log(result);
-        }
-      }
-      cleanNotificationData();
-    }
-    //get messages from DB
-    async function getMessagesData() {
-      const { token } = currentUser;
-      const data = await getMessages(id, token);
-      if (!data.hasOwnProperty("message")) {
-        const usertype = currentUser.userType;
-        let messages = data.content;
-        for (let i = 0; i < messages.length; i++) {
-          const { message, sender } = messages[i];
-          const isSender = sender === usertype;
-          let div = messagesContainer.current;
-          const p = document.createElement("p");
-          p.textContent = message;
-          if (isSender) addStyleToSentMessages(p);
-          else addStyleToReceivedMessages(p);
-          div.appendChild(p);
-        }
-      }
-    }
-    getMessagesData();
+    //get messages from DB and display on chat box
+    getMessagesData(id, currentUser, messagesContainer);
 
-    const data = {
-      owner: id,
-      guest: currentUser.id.toString(),
-    };
-    socket.emit(SocketEvents.JOINROOM, data);
-    return () => {
-      if (messagesContainer.current === null) {
-        socket.emit(SocketEvents.LEAVEROOM, data);
-      }
-    };
+    // join room
+    joinRoomEmitter(id, socket, SocketEvents, messagesContainer, currentUser);
   }, []);
 
   useEffect(() => {
-    socket.on(SocketEvents.SEND_MESSAGE, (data) => {
-      let div = messagesContainer.current;
-      const p = document.createElement("p");
-      p.textContent = data.message;
-      addStyleToReceivedMessages(p);
-      div.appendChild(p);
-    });
-    return () => {
-      socket.off(SocketEvents.SEND_MESSAGE, (data) => console.log(data));
-    };
+    // listen to incoming message and display
+    incomingMessageListener(
+      socket,
+      SocketEvents,
+      addStyleToReceivedMessages,
+      messagesContainer
+    );
   }, []);
   return (
     <div style={{ width: "75%", margin: "auto" }}>
+      <button
+        onClick={() => {
+          setPage("home");
+          leaveRoomEmitter(id, socket, SocketEvents, currentUser);
+        }}
+      >
+        Go Back
+      </button>
+
       <p>
         {name}, {onlineStatus ? "Online" : "Offline"}
       </p>
@@ -128,10 +100,10 @@ export default function Chat({
           <div
             style={{ display: "inline-block" }}
             onChange={() =>
-              handleUserTyping(currentUser, id, socket, SocketEvents)
+              userTypingEmitter(currentUser, id, socket, SocketEvents)
             }
             onBlur={() =>
-              handleUserNotTyping(currentUser, id, socket, SocketEvents)
+              userNotTypingEmitter(currentUser, id, socket, SocketEvents)
             }
           >
             <textarea ref={textContainer} rows="1" cols="73"></textarea>
@@ -167,22 +139,45 @@ const addStyleToReceivedMessages = (p) => {
   layout.borderRadius = "0px 10px 4px 10px";
 };
 
-const handleUserTyping = (currentUser, id, socket, SocketEvents) => {
-  if (currentUser == null) return;
-  const data = {
-    sender: currentUser.email,
-    receiver: id,
-    status: true,
-  };
-  socket.emit(SocketEvents.NOTIFY_TYPING, data);
+const cleanUpChatNotifications = (
+  id,
+  currentUser,
+  notificationMessage,
+  setNotificationAction
+) => {
+  let notifications = notificationMessage;
+  if (notifications !== undefined) {
+    //clean notification messages from redux state
+    let newNotification = {};
+    newNotification[id] = [];
+    setNotificationAction(newNotification);
+
+    // clean notification messages from database
+    async function cleanNotificationData() {
+      const result = await cleanUpNotifications(id, currentUser.token);
+      if (!result.hasOwnProperty("message")) {
+        console.error(result);
+      }
+    }
+    cleanNotificationData();
+  }
 };
 
-const handleUserNotTyping = async (currentUser, id, socket, SocketEvents) => {
-  if (currentUser == null) return;
-  const data = {
-    sender: currentUser.email,
-    receiver: id,
-    status: false,
-  };
-  socket.emit(SocketEvents.NOTIFY_TYPING, data);
-};
+async function getMessagesData(id, currentUser, messagesContainer) {
+  const { token } = currentUser;
+  const data = await getMessages(id, token);
+  if (!data.hasOwnProperty("message")) {
+    const usertype = currentUser.userType;
+    let messages = data.content;
+    for (let i = 0; i < messages.length; i++) {
+      const { message, sender } = messages[i];
+      const isSender = sender === usertype;
+      let div = messagesContainer.current;
+      const p = document.createElement("p");
+      p.textContent = message;
+      if (isSender) addStyleToSentMessages(p);
+      else addStyleToReceivedMessages(p);
+      div.appendChild(p);
+    }
+  }
+}

@@ -105,9 +105,6 @@ const Message = ({
         <strong>LOGOUT</strong>
       </div>
       <div>
-        {page === "chat" && (
-          <button onClick={() => setPage("home")}>Go Back</button>
-        )}
         <h3>
           Profile: {currentUser.email} ({currentUser.userType})
         </h3>
@@ -130,6 +127,7 @@ const Message = ({
             id={reciever.id}
             name={reciever.name}
             currentUser={currentUser}
+            setPage={setPage}
           />
         )}
       </div>

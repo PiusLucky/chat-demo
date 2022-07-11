@@ -3,7 +3,7 @@ import { header } from "./header";
 
 export const getOfflineNotification = async ({ token }) => {
   const baseUrl = process.env.REACT_APP_BETACARE_URL;
-  const url = `${baseUrl}/api/message/offline-messages/count?`;
+  const url = `${baseUrl}/api/message/offline-messages/count`;
 
   return await getData(url, header(token));
 };

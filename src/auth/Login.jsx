@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { users } from "../utils/testUsers";
 import { toast } from "react-toastify";
 import { saveLoggedUser } from "../utils/saveUser";
+import { userLogin } from "../api/login.js";
+import "./css/login.css";
 
 const initialFormData = {
   email: "",
+  password: "",
 };
 
 const Login = () => {
@@ -14,26 +16,24 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleOnchangeEvent = (e) => {
-    let value = e.target.value;
-
-    if (value === "Doctor" || value === "Patient") {
-      updateFormData({ ...formData, userType: value });
-    } else {
-      updateFormData({ ...formData, [e.target.name]: e.target.value.trim() });
-    }
+    updateFormData({ ...formData, [e.target.name]: e.target.value.trim() });
   };
 
-  const authenticate = () => {
-    let email = formData.email;
-    let user = users.find((user) => user.email === email);
-    if (user === undefined) {
-      toast("Invalid Email");
-      return;
-    }
+  const authenticate = async (e) => {
+    e.preventDefault();
+    try {
+      const result = await userLogin(formData);
+      if (result.hasOwnProperty("message")) {
+        toast(result.message);
+        return;
+      }
 
-    saveLoggedUser(user);
-    // redirect
-    navigate("/home");
+      const userType = getUserType(result.roles);
+      saveLoggedUser({ ...result, userType });
+      navigate("/message");
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
@@ -46,23 +46,50 @@ const Login = () => {
   return (
     <>
       <form>
-        <h1>AUTHENTICATE USER</h1>
-        <input
-          type="text"
-          onChange={handleOnchangeEvent}
-          placeholder="Enter your email"
-          name="email"
-        />
-        <br />
-        <input
-          onClick={authenticate}
-          type="button"
-          value="Authenticate"
-          disabled={buttonState}
-        />
+        <div className="imgcontainer">
+          <img src="img_avatar2.png" alt="Avatar" className="avatar" />
+        </div>
+
+        <div className="container">
+          <label htmlFor="email">
+            <b>Email</b>
+          </label>
+          <input
+            type="text"
+            onChange={handleOnchangeEvent}
+            placeholder="Enter your email"
+            name="email"
+            required
+          />
+
+          <label htmlFor="password">
+            <b>Password</b>
+          </label>
+          <input
+            type="password"
+            placeholder="Enter Password"
+            onChange={handleOnchangeEvent}
+            name="password"
+            required
+          />
+
+          <button
+            type="submit"
+            onClick={authenticate}
+            value="Authenticate"
+            disabled={buttonState}
+          >
+            Login
+          </button>
+        </div>
       </form>
     </>
   );
+};
+
+const getUserType = (roles) => {
+  const role = roles[0];
+  return role.replace("ROLE_", "");
 };
 
 export default Login;

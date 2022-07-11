@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from "react";
-import { toast } from "react-toastify";
 import { cleanUpNotifications, getMessages } from "../api/message";
 
 const chatBox = {
@@ -25,8 +24,6 @@ export default function Chat({
   const textContainer = useRef();
   const messagesContainer = useRef(null);
   const onlineStatus = onlineUsers.includes(id);
-  console.log(onlineUsers);
-  console.log(id);
 
   const handleSendMessage = (e) => {
     const id = e.target.id.toString();

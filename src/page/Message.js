@@ -76,14 +76,11 @@ const Message = ({
     async function fetchData() {
       try {
         const result = await getOfflineNotification(currentUser);
-        console.log(result, "jfghghhfmg");
         if (!result.hasOwnProperty("message")) {
           let senders = Object.keys(result);
-          console.log(senders, "senders");
           for (let i = 0; i < senders.length; i++) {
             let newNotification = {};
             newNotification[senders[i]] = [result[senders[i]]];
-            console.log(newNotification, "newNotification");
             setNotificationAction(newNotification);
           }
         }

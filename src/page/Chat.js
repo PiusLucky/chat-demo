@@ -58,7 +58,7 @@ export default function Chat({
     getMessagesData(id, currentUser, messagesContainer);
 
     // join room
-    joinRoomEmitter(id, socket, SocketEvents, messagesContainer, currentUser);
+    joinRoomEmitter(id, socket, SocketEvents, currentUser);
   }, []);
 
   useEffect(() => {

@@ -19,7 +19,6 @@ const reducer = (state = initState, action) => {
         userTyping: action.userTyping,
       };
     case Actions.SET_NOTIFICATION:
-      console.log(state.notificationMessage, "here");
       return {
         ...state,
         notificationMessage: action.notificationMessage,

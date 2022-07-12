@@ -6,7 +6,7 @@ export const userNotTypingEmitter = async (
 ) => {
   if (currentUser == null) return;
   const data = {
-    sender: currentUser.email,
+    sender: currentUser.id,
     receiver: id,
     status: false,
   };

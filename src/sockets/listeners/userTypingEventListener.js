@@ -9,14 +9,14 @@ export const userTypingEventListener = (
     const arr = [];
 
     for (let i = 0; i < userTyping.length; i++) {
-      arr.push(userTyping[i]);
+      arr.push(userTyping[i].toString());
     }
 
     if (status) {
       if (!arr.includes(sender)) arr.push(sender);
       setUserTypingAction(arr);
     } else {
-      const users = arr.filter((user) => user !== sender);
+      const users = arr.filter((user) => user !== sender.toString());
       setUserTypingAction(users);
     }
   });

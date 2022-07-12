@@ -62,7 +62,7 @@ const displayNotificationBadge = (
   );
 };
 
-const displayWhenUserIsTyping = (isTyping = false, name, userType) => {
+const displayWhenUserIsTyping = (isTyping, name, userType) => {
   return (
     <div>
       {`${name}, (${userType})`} <small>{isTyping && ", typing..."}</small>
